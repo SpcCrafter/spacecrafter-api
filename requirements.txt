@@ -1,0 +1,6 @@
+Flask
+peewee
+PyMySQL
+yoyo-migrations
+boto3
+flask-bcrypt  
