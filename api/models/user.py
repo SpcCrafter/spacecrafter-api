@@ -1,5 +1,5 @@
 from peewee import Model, CharField, BooleanField, PrimaryKeyField
-from app import database
+from api import database
 
 class User(Model):
     id = PrimaryKeyField()

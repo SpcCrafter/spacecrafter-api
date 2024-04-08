@@ -23,7 +23,7 @@ services:
       DEV_DB_PASSWORD: 'password'
       DEV_DB_HOST: 'db'
     ports:
-      - "5000:5000"
+      - "5050:5050"
     depends_on:
       - db
 

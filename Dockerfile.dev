@@ -1,0 +1,14 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY api /app/api
+COPY requirements.txt run.py /app/
+
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+EXPOSE 5050
+
+ENV FLASK_APP=api
+
+CMD ["flask", "run", "--host=0.0.0.0", "--port=5050"]

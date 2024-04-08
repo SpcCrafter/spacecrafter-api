@@ -1,11 +1,11 @@
-from flask import Flask
 import os
 import logging
+from flask import Flask
 from peewee import MySQLDatabase
 import boto3
 from botocore.exceptions import ClientError
-from app.models.user import User
-from app.controllers.user_controller import user_bp
+from models.user import User
+from controllers.user_controller import user_bp
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -58,6 +58,7 @@ database = MySQLDatabase(
     host=app.config['DB_HOST'],
     port=app.config['DB_PORT']
 )
+
 
 @app.before_first_request
 def initialize_database():

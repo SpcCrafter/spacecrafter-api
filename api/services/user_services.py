@@ -1,7 +1,7 @@
 from flask_bcrypt import generate_password_hash, check_password_hash
 from peewee import IntegrityError
-from app.models.user import User
-from app.repositories import user_repository
+from api.models.user import User
+from api.repositories import user_repository
 
 def create_user(username, raw_password):
     hashed_password = generate_password_hash(raw_password).decode('utf-8')
