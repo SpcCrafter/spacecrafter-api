@@ -1,11 +1,10 @@
 from flask_jwt_extended import create_access_token
 from flask import Blueprint, request, jsonify
-from werkzeug.security import generate_password_hash
-from api.services.user_service import create_user, verify_user, user_exists, email_exists
+from api.services.user_services import create_user, verify_user, user_exists, email_exists
 
 user_bp = Blueprint('user_bp', __name__)
 
-@user_bp.route('/signup', methods=['POST']) 
+@user_bp.route('/signup', methods=['POST'])
 def signup():
     data = request.get_json()
     username = data.get('username')
@@ -21,10 +20,9 @@ def signup():
     if email_exists(email):
         return jsonify({'error': 'Email is already registered'}), 409
 
-    hashed_password = generate_password_hash(password).decode('utf-8')
-    user = create_user(username, email, hashed_password)
+    user = create_user(username, email, password)
     if user:
-        return jsonify({'id': user.id, 'username': user.username, 'email': user.email}), 201
+        return jsonify({'username': user.username, 'email': user.email}), 201
     else:
         return jsonify({'error': 'User could not be created'}), 500
 

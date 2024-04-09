@@ -13,6 +13,11 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api:
     image: spccrafter_api:dev
@@ -22,10 +27,13 @@ services:
       DEV_DB_USER: 'devuser'
       DEV_DB_PASSWORD: 'password'
       DEV_DB_HOST: 'db'
+      DEV_DB_PORT: '3306'
+      JWT_SECRET_KEY: 'B7CnCaKdLVHHJgTek2_xY6PoiKHOixzzPyQDPowv7FA'
     ports:
       - "5050:5050"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   mysql_data:

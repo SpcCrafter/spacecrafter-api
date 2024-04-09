@@ -10,20 +10,20 @@ else
 export SED:=sed -i
 endif
 
-docker-clean:
-	docker rmi ${IMAGE} &>/dev/null || true
-
-docker-build: docker-clean
-	docker build -t $(IMAGE):$(VERSION) -f Dockerfile.dev .
-
 dev-down:
 	docker-compose -f docker-compose-dev.yml down
+
+docker-clean: dev-down
+	docker rmi ${IMAGE} &>/dev/null || true
+
+docker-build: docker-clean 
+	docker build -t $(IMAGE):$(VERSION) -f Dockerfile.dev .
 
 dev-env-up: dev-down
 	docker-compose -f docker-compose-dev.yml up -d
 
 migrate_dev_db:
-	yoyo apply --database 'mysql://devuser:password@127.0.0.1:3306/spacecrafter' ./app/migrations/
+	yoyo apply --database 'mysql://devuser:password@127.0.0.1:3306/spacecrafter' migrations/
 
 lint:
 	./app lint

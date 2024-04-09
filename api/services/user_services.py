@@ -3,8 +3,8 @@ from peewee import IntegrityError
 from api.models.user import User
 from api.repositories import user_repository
 
-def create_user(username, raw_password):
-    hashed_password = generate_password_hash(raw_password).decode('utf-8')
+def create_user(username, email, raw_password):
+    hashed_password = generate_password_hash(raw_password)
     try:
         user = user_repository.create_user(username, email, hashed_password)
         return user

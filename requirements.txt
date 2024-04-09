@@ -1,6 +1,7 @@
 Flask
+flask-jwt-extended
+flask-bcrypt
 peewee
 PyMySQL
 yoyo-migrations
 boto3
-flask-bcrypt  
