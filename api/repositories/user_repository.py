@@ -10,7 +10,6 @@ def find_user_by_username(username):
     except User.DoesNotExist:
         return None
 
-# These functions check for the existence of a username or email in the database
 def user_exists(username):
     return User.select().where(User.username == username).exists()
 

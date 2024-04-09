@@ -2,10 +2,9 @@ import os
 import logging
 from flask import Flask
 from flask_jwt_extended import JWTManager
-from api.database import database_details, database, apply_migrations
+from api.database import database_details, database
 from api.aws import get_ssm_parameter
-from api.controllers import user_controller, protected_controller
-
+from api.controllers import user_controller, aws_credentials_controller
 
 app = Flask(__name__)
 
@@ -23,12 +22,6 @@ app.config.update(database_details)
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-# @app.before_first_request
-# def initialize_database():
-#     # Connect to the database and create tables if they don't exist
-#     with database.connection_context():
-#         database.create_tables([User], safe=True)
-
 @app.before_request
 def before_request():
     database.connect(reuse_if_open=True)
@@ -39,8 +32,8 @@ def after_request(_exception=None):
         database.close()
 
 app.register_blueprint(user_controller.user_bp, url_prefix='/api')
-app.register_blueprint(protected_controller.protected_bp, url_prefix='/api')
+app.register_blueprint(aws_credentials_controller.aws_credentials_bp, url_prefix='/api')
+
 
 if __name__ == "__main__":
-    apply_migrations(database_details)
     app.run()

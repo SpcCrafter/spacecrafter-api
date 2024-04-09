@@ -29,6 +29,7 @@ services:
       DEV_DB_HOST: 'db'
       DEV_DB_PORT: '3306'
       JWT_SECRET_KEY: 'B7CnCaKdLVHHJgTek2_xY6PoiKHOixzzPyQDPowv7FA'
+      ENCRYPTION_KEY: 'YNYS1w53cAgzJ37eWulkhip70TFzegV3G2a8dkupQv8='
     ports:
       - "5050:5050"
     depends_on:

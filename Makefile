@@ -23,7 +23,7 @@ dev-env-up: dev-down
 	docker-compose -f docker-compose-dev.yml up -d
 
 migrate_dev_db:
-	yoyo apply --database 'mysql://devuser:password@127.0.0.1:3306/spacecrafter' migrations/
+	yoyo apply --database 'mysql://devuser:password@127.0.0.1:3306/spacecrafter' api/migrations/
 
 lint:
 	./app lint

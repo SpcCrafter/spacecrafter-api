@@ -1,6 +1,7 @@
 Flask
 flask-jwt-extended
 flask-bcrypt
+cryptography
 peewee
 PyMySQL
 yoyo-migrations
