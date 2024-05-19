@@ -1,6 +1,5 @@
 import os
 from peewee import MySQLDatabase
-from yoyo import read_migrations, get_backend
 from api.aws import get_ssm_parameter
 
 env = os.environ.get('FLASK_ENV')
@@ -35,14 +34,3 @@ database = MySQLDatabase(
     host=database_details['db_host'],
     port=database_details['db_port']
 )
-
-# def apply_migrations():
-#     connection_string = f"mysql://{database_details['db_user']}:{database_details['db_password']}@" \
-#                         f"{database_details['db_host']}:{database_details['db_port']}/{database_details['db_name']}"
-    
-#     backend = get_backend(connection_string)
-
-#     migrations = read_migrations('./migrations/')
-
-#     with backend.lock():
-#         backend.apply_migrations(backend.to_apply(migrations))
