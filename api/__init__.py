@@ -4,7 +4,7 @@ from flask import Flask
 from flask_jwt_extended import JWTManager
 from api.database import database_details, database
 from api.aws import get_ssm_parameter
-from api.controllers import user_controller, aws_credentials_controller
+from api.controllers import aws_controller, user_controller
 
 app = Flask(__name__)
 
@@ -32,8 +32,7 @@ def after_request(_exception=None):
         database.close()
 
 app.register_blueprint(user_controller.user_bp, url_prefix='/api')
-app.register_blueprint(aws_credentials_controller.aws_credentials_bp, url_prefix='/api')
-
+app.register_blueprint(aws_controller.aws_credentials_bp, url_prefix='/api')
 
 if __name__ == "__main__":
     app.run()

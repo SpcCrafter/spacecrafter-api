@@ -6,6 +6,7 @@ class AwsCredentials(Model):
     user = ForeignKeyField(User, backref='aws_credentials')
     aws_access_key_id = CharField()
     aws_secret_access_key = CharField(null=True)
+    preferred_aws_region = CharField(null=True)
 
     class Meta:
         database = database

@@ -1,7 +1,10 @@
 import os
 import logging
 from cryptography.fernet import Fernet
+from flask_jwt_extended import get_jwt_identity
 from api.aws import get_ssm_parameter
+from api.models.user import User
+from api.models.aws_credentials import AwsCredentials
 
 logger = logging.getLogger(__name__)
 
@@ -28,3 +31,19 @@ def decrypt(encrypted_text):
     cipher_suite = Fernet(encryption_key)
     decrypted_text = cipher_suite.decrypt(encrypted_text.encode('utf-8'))
     return decrypted_text.decode('utf-8')
+
+def get_aws_credentials(current_user_id):
+    current_user_id = get_jwt_identity()
+
+    user = User.get_or_none(username=current_user_id)
+    if not user:
+        raise Exception(f'User not found')
+
+    aws_credentials = AwsCredentials.get_or_none(user=user)
+    if not aws_credentials:
+        raise Exception('AWS Credentials not found')
+
+    decrypted_access_key = decrypt(aws_credentials.aws_access_key_id)
+    decrypted_secret_key = decrypt(aws_credentials.aws_secret_access_key)
+
+    return decrypted_access_key, decrypted_secret_key
