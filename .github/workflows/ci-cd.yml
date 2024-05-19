@@ -40,12 +40,6 @@ jobs:
       run: |
         docker build -t spccrafter_api:dev -f Dockerfile.dev .
 
-    - name: Push Docker image to GitHub Container Registry
-      run: |
-        echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-        docker tag spccrafter_api:dev ghcr.io/${{ github.repository_owner }}/spccrafter_api:dev
-        docker push ghcr.io/${{ github.repository_owner }}/spccrafter_api:dev
-
     - name: Deploy to Docker Compose
       run: |
         docker-compose -f docker-compose-dev.yml up -d
