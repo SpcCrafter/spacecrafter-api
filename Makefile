@@ -26,4 +26,7 @@ migrate_dev_db:
 	yoyo apply --database 'mysql://devuser:password@127.0.0.1:3306/spacecrafter' api/migrations/
 
 lint:
-	./app lint
+	pylint ./api
+
+test:
+	pytest
