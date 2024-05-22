@@ -15,11 +15,11 @@ def store_aws_credentials():
     aws_secret_access_key = data.get('aws_secret_access_key')
     preferred_aws_region = data.get('preferred_aws_region')
 
-    current_user_id = get_jwt_identity()
+    current_user = get_jwt_identity()
 
-    user = User.get_or_none(username=current_user_id)
+    user = User.get_or_none(username=current_user)
     if not user:
-        return jsonify({'message': f'User {current_user_id} not found'}), 404
+        return jsonify({'message': f'User {current_user} not found'}), 404
 
     encrypted_access_key = encrypt(aws_access_key_id)
     encrypted_secret_key = encrypt(aws_secret_access_key)
@@ -37,13 +37,13 @@ def store_aws_credentials():
 @aws_credentials_bp.route('/aws/create_container', methods=['POST'])
 @jwt_required()
 def create_container():
-    current_user_id = get_jwt_identity()
+    current_user = get_jwt_identity()
     data = request.get_json()
 
     # Fetch the user from the database
-    user = User.get_or_none(username=current_user_id)
+    user = User.get_or_none(username=current_user)
     if not user:
-        return jsonify({'message': f'User {current_user_id} not found'}), 404
+        return jsonify({'message': f'User {current_user} not found'}), 404
 
     # Fetch the AWS credentials for the user from the database
     aws_credentials = AwsCredentials.get_or_none(user=user)
@@ -62,7 +62,7 @@ def create_container():
 
     # Initialize the InstanceSetUp class
     instance_setup = InstanceSetUp(
-        user_id=current_user_id,
+        username=current_user,
         container_name=container_name,
         requested_cpu=requested_cpu,
         requested_storage=requested_storage,
