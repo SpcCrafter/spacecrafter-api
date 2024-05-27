@@ -5,7 +5,7 @@ from .user import User
 class AwsCredentials(Model):
     user = ForeignKeyField(User, backref='aws_credentials')
     aws_access_key_id = CharField()
-    aws_secret_access_key = CharField(null=True)
+    aws_secret_access_key = CharField()
     preferred_aws_region = CharField(null=True)
 
     class Meta:

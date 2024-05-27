@@ -5,8 +5,10 @@ from flask_jwt_extended import get_jwt_identity
 from api.aws import get_ssm_parameter
 from api.models.user import User
 from api.models.aws_credentials import AwsCredentials
+from api.models.ec2_instances import EC2Instances
 
 logger = logging.getLogger(__name__)
+
 
 def get_encryption_key():
     try:
@@ -20,17 +22,20 @@ def get_encryption_key():
         logger.error(f"Failed to retrieve encryption key: {e}")
         raise
 
+
 def encrypt(plain_text):
     encryption_key = get_encryption_key()
     cipher_suite = Fernet(encryption_key)
     encrypted_text = cipher_suite.encrypt(plain_text.encode('utf-8'))
     return encrypted_text.decode('utf-8')
 
+
 def decrypt(encrypted_text):
     encryption_key = get_encryption_key()
     cipher_suite = Fernet(encryption_key)
     decrypted_text = cipher_suite.decrypt(encrypted_text.encode('utf-8'))
     return decrypted_text.decode('utf-8')
+
 
 def get_aws_credentials(current_user_id):
     current_user_id = get_jwt_identity()
@@ -47,3 +52,12 @@ def get_aws_credentials(current_user_id):
     decrypted_secret_key = decrypt(aws_credentials.aws_secret_access_key)
 
     return decrypted_access_key, decrypted_secret_key
+
+
+def get_instance_id(username, container_name):
+    user = User.get(User.username == username)
+    instance = EC2Instances.get(
+        (EC2Instances.user == user) & 
+        (EC2Instances.ec2_instance_id.contains(container_name))
+    )
+    return instance.ec2_instance_id
