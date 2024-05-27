@@ -9,4 +9,3 @@ security_group INTEGER REFERENCES security_groups(id),
 key_file INTEGER REFERENCES ec2_key_pair(id)
 )
 """
-)

@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 # logger.setLevel(logging.DEBUG)
 # logger.addHandler(logging.StreamHandler())
 
+
 INSTANCE_TYPE_MAPPING = [
     {'name': 't2.micro', 'cpu': 1, 'memory': 1},
     {'name': 't2.small', 'cpu': 1, 'memory': 2},
@@ -174,6 +175,7 @@ class InstanceSetUp():
         try:
             ec2_client.describe_key_pairs(KeyNames=[key_name])
             logger.info(f"Can't create as key pair '{key_name}' already exists.")
+
         except ClientError as e:
             if 'InvalidKeyPair.NotFound' in str(e):
                 key_pair_info = ec2_client.create_key_pair(KeyName=key_name)
@@ -331,6 +333,13 @@ class InstanceSetUp():
             security_group_id=security_group_id
         )
 
+        user = User.get(User.username == self.username)
+        SecurityGroups.create(
+            user=user,
+            security_group_name=group_name,
+            security_group_id=security_group_id
+        )
+
         return security_group_id
 
     def create_ec2_instance(self):
@@ -340,6 +349,12 @@ class InstanceSetUp():
         instance_name = f"{username}-{self.container_name}"
 
         logger.info(f"Creating EC2 instance with name: {instance_name}")
+
+        # !!!!! Should fix
+        # Find the AMI ID
+        # ami_id = self.find_ami_id()
+        # if not ami_id:
+        #     raise ValueError(f"Unable to find a suitable AMI ID. The output: {ami_id}")
 
         ami_id = "ami-026c3177c9bd54288"
 
@@ -427,6 +442,7 @@ class InstanceSetUp():
             logger.info(f"EC2 instance record created successfully in the database.")
 
             return instance_id, public_ip
+
         except Exception as e:
             logger.error(f"Failed to create EC2 instance: {e}")
             raise
