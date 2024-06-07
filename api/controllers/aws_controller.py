@@ -64,10 +64,9 @@ def create_container():
 
     container_name = data.get('container_name')
     requested_cpu = data.get('cpu')
-    requested_storage = data.get('memory')
+    requested_storage = data.get('storage')
     container_params = {
         'container_name': container_name,
-        'memory': data.get('memory'),
         'image': data.get('image'),
         'env_vars': data.get('env_vars', {})
     }

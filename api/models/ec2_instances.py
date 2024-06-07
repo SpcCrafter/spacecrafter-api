@@ -7,8 +7,8 @@ from .user import User
 class EC2Instances(Model):
     user = ForeignKeyField(User, backref='ec2_instances')
     ec2_instance_id = CharField()
-    security_group = ForeignKeyField(SecurityGroups, backref='ec2_instances')
-    key_file = ForeignKeyField(EC2KeyPair, backref='ec2_instances')
+    security_group = ForeignKeyField(SecurityGroups, backref='ec2_instances', column_name='security_group')
+    key_file = ForeignKeyField(EC2KeyPair, backref='ec2_instances', column_name='key_file')
 
     class Meta:
         database = database

@@ -6,7 +6,7 @@ from .user import User
 class UserContainers(Model):
     user = ForeignKeyField(User, backref='user_containers')
     container_name = CharField()
-    ec2_instance = ForeignKeyField(EC2Instances, backref='user_containers')
+    ec2_instance = ForeignKeyField(EC2Instances, backref='user_containers', column_name='ec2_instance')
 
     class Meta:
         database = database

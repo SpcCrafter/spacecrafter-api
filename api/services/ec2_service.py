@@ -64,12 +64,16 @@ class InstanceSetUp():
                 if best_match is None or instance_type['cpu'] < best_match['cpu']:
                     best_match = instance_type
 
+        logger.info(f"EC2 instance type is {best_match['name']}")
+
         # Return the name of the best matching instance type or None if no match is found.
         return best_match['name'] if best_match else None
 
     def calculate_ebs_volume_size(self, requested_storage: int):
         total_required_size_gb = OS_AND_DEPENDENCIES_SIZE_GB + requested_storage
         ebs_volume_size_gb = max(total_required_size_gb, MINIMUM_EBS_SIZE_GB)
+
+        logger.info(f"EBS Volume size is {ebs_volume_size_gb}")
         return ebs_volume_size_gb
 
     def create_kms_key(self):
@@ -174,6 +178,7 @@ class InstanceSetUp():
         try:
             ec2_client.describe_key_pairs(KeyNames=[key_name])
             print(f"Can't create as key pair '{key_name}' already exists.")
+            logger.info(f"Can't create as key pair '{key_name}' already exists.")
         except ClientError as e:
             if 'InvalidKeyPair.NotFound' in str(e):
                 key_pair_info = ec2_client.create_key_pair(KeyName=key_name)
@@ -186,6 +191,7 @@ class InstanceSetUp():
                 s3_file_path = f"keys/{key_name}.pem.enc"
                 s3_client.put_object(Bucket=s3_bucket_name, Key=s3_file_path, Body=encrypted_key)
                 print(f"Encrypted key pair saved to s3://{s3_bucket_name}/{s3_file_path}")
+                logger.info(f"Encrypted key pair saved to s3://{s3_bucket_name}/{s3_file_path}")
 
                 # Save file path to database
                 user = User.get(User.username == self.username)
@@ -195,6 +201,7 @@ class InstanceSetUp():
                     s3_file_path=f"s3://{s3_bucket_name}/{s3_file_path}"
                 )
                 print(f"File path saved to database: {s3_file_path}")
+                logger.info(f"File path saved to database: {s3_file_path}")
 
             else:
                 raise e
@@ -212,28 +219,6 @@ class InstanceSetUp():
         # Decrypt the key using KMS
         decrypted_key = self.decrypt_file_with_kms(kms_client, encrypted_key)
         return decrypted_key.decode('utf-8')
-
-
-    # def create_instance_key(self):
-    #     session = self.setup_boto_session()
-    #     ec2_client = session.client('ec2')
-
-    #     key_name = f"{self.username}_{self.container_name}"
-    #     # Check if the key pair already exists
-    #     try:
-    #         ec2_client.describe_key_pairs(KeyNames=[key_name])
-    #         print(f"Can't create as key pair '{key_name}' already exists.")
-    #     except ec2_client.exceptions.ClientError as e:
-    #         if 'InvalidKeyPair.NotFound' in str(e):
-    #             key_pair_info = ec2_client.create_key_pair(KeyName=key_name)
-    #             # Save the private key to a file
-    #             with open(f'{key_name}.pem', 'w') as key_file:
-    #                 key_file.write(key_pair_info['KeyMaterial'])
-    #                 print(f"Key pair '{key_name}' created and saved to {key_name}.pem")
-    #         else:
-    #             # Some other error occurred
-    #             raise e
-    #     return key_name
 
     def find_ami_id(self):
         try:
@@ -275,6 +260,7 @@ class InstanceSetUp():
         try:
             groups = ec2_client.describe_security_groups(GroupNames=[group_name])
             print(f"Security group '{group_name}' already exists.")
+            logger.info(f"Security group '{group_name}' already exists.")
             return groups['SecurityGroups'][0]['GroupId']
         except ec2_client.exceptions.ClientError as e:
             # If a security group with the given name does not exist, create it
@@ -283,6 +269,7 @@ class InstanceSetUp():
                                                                   Description=description)
                 security_group_id = security_group['GroupId']
                 print(f"Security group '{group_name}' created with ID '{security_group_id}'.")
+                logger.info(f"Security group '{group_name}' created with ID '{security_group_id}'.")
             else:
                 raise e
 
@@ -312,30 +299,6 @@ class InstanceSetUp():
                     'IpRanges': ip_ranges
                 })
 
-        # # Authorize the ingress rules in one call
-        # ec2_client.authorize_security_group_ingress(GroupId=security_group_id,
-        #                                                 IpPermissions=ip_permissions)
-
-        #     # Retrieve the existing rules for the security group
-        # existing_rules = ec2_client.describe_security_group_rules(
-        #     Filters=[
-        #         {'Name': 'group-id', 'Values': [security_group_id]}
-        #     ]
-        # )
-
-        # # Extract existing rules' ports and IP ranges for comparison
-        # existing_ports_ip_ranges = [
-        #     (rule['FromPort'], rule['ToPort'], tuple(ip_range['CidrIp'] for ip_range in rule['IpRanges']))
-        #     for rule in existing_rules['SecurityGroupRules']
-        #     if rule['IpProtocol'] == 'tcp'
-        # ]
-
-        # # Filter out rules that already exist in the security group
-        # ip_permissions = [
-        #     rule for rule in ip_permissions
-        #     if (rule['FromPort'], rule['ToPort'], tuple(ip_range['CidrIp'] for ip_range in rule['IpRanges'])) not in existing_ports_ip_ranges
-        # ]
-
         # Authorize the ingress rules in one call if there are new rules to add
         if ip_permissions:
             ec2_client.authorize_security_group_ingress(
@@ -343,8 +306,10 @@ class InstanceSetUp():
                 IpPermissions=ip_permissions
             )
             print(f"New ingress rules added to the security group '{group_name}'.")
+            logger.info(f"New ingress rules added to the security group '{group_name}'.")
         else:
             print(f"No new ingress rules needed for the security group '{group_name}'.")
+            logger.info(f"No new ingress rules needed for the security group '{group_name}'.")
 
         user = User.get(User.username == self.username)
         SecurityGroups.create(
@@ -362,7 +327,6 @@ class InstanceSetUp():
         instance_name = f"{username}-{self.container_name}"
 
         logger.info(f"Creating EC2 instance with name: {instance_name}")
-
 
         # !!!!! Should fix
         # Find the AMI ID
@@ -428,7 +392,25 @@ class InstanceSetUp():
             )
             instance_id = instances['Instances'][0]['InstanceId']
             print(f"EC2 instance '{instance_id}' has been created successfully.")
+            logger.info(f"EC2 instance '{instance_id}' has been created successfully.")
 
+            # Wait for the instance to initialize and get its public IP address
+            public_ip = None
+            retries = 10
+            wait_time = 5  # seconds
+            while retries > 0 and not public_ip:
+                logger.info(f"Waiting for instance to initialize. Retries left: {retries}")
+                time.sleep(wait_time)
+                instance_description = ec2_client.describe_instances(InstanceIds=[instance_id])
+                public_ip = instance_description['Reservations'][0]['Instances'][0].get('PublicIpAddress')
+                retries -= 1
+
+            if not public_ip:
+                logger.error(f"Failed to retrieve the public IP address for instance {instance_id}")
+            else:
+                logger.info(f"EC2 instance public IP: {public_ip}")
+
+            
             user = User.get(User.username == self.username)
             security_group = SecurityGroups.get(SecurityGroups.security_group_id == security_group_id)
             EC2Instances.create(
@@ -437,7 +419,8 @@ class InstanceSetUp():
                 security_group=security_group,
                 key_file=key_name
             )
-            return instance_id
+
+            return instance_id, public_ip
         except Exception as e:
             # Handle the exception in a way that's appropriate for your application
             # For example, you might want to log the error,

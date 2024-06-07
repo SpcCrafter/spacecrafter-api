@@ -28,11 +28,6 @@ class ContainerService:
         logger.info(f"container params: {container_params}")
         docker_command = f"docker run -d --name {container_params['container_name']}"
 
-        if 'memory' in container_params:
-            memory_mb = container_params['memory']
-            memory_bytes = memory_mb * (2**20)
-            docker_command += f" --memory {memory_bytes}"
-
         if 'env_vars' in container_params and container_params['env_vars'] is not None:
             for key, value in container_params['env_vars'].items():
                 docker_command += f" -e {key}={value}"
