@@ -1,6 +1,8 @@
-from flask_jwt_extended import create_access_token
 from flask import Blueprint, request, jsonify
-from api.services.user_services import create_user, verify_user, user_exists, email_exists
+from flask_bcrypt import generate_password_hash
+from flask_jwt_extended import create_access_token
+from api.services.user_services import verify_user, user_exists, email_exists
+from api.models.user import User
 
 user_bp = Blueprint('user_bp', __name__)
 
@@ -12,20 +14,21 @@ def signup():
     password = data.get('password')
 
     if not username or not email or not password:
-        return jsonify({'error': 'Username, email, and password are required'}), 400
+        return jsonify({'message': 'Username, email, and password are required'}), 400
 
     if user_exists(username):
-        return jsonify({'error': 'Username is already taken'}), 409
+        return jsonify({'message': 'Username is already taken'}), 409
 
     if email_exists(email):
-        return jsonify({'error': 'Email is already registered'}), 409
+        return jsonify({'message': 'Email is already registered'}), 409
 
-    user = create_user(username, email, password)
-    if user:
-        return jsonify({'username': user.username, 'email': user.email}), 201
+    hashed_password = generate_password_hash(password).decode('utf-8')
+
+    user = User.create(username=username, email=email, password=hashed_password)
+    if user:  
+        return jsonify({'username': user.username, 'email': user.email}), 200
     else:
-        return jsonify({'error': 'User could not be created'}), 500
-
+        return jsonify({'message': 'User could not be created'}), 500
 
 @user_bp.route('/login', methods=['POST'])
 def login():

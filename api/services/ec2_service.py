@@ -83,23 +83,24 @@ class InstanceSetUp():
 
         alias_name = f"alias/{username}-key"
 
-        # Check if the key alias already exists
+        # Check if the key alias already exists in KMS
         try:
             response = kms_client.describe_key(KeyId=alias_name)
             key_id = response['KeyMetadata']['KeyId']
             logger.info(f"Found existing KMS key with ID: {key_id} for user {self.username}")
 
-            # Check if the record already exists in the database
+            # Check if the key alias and key ID combination already exists in the database
             existing_kms_key = KMSKeys.get_or_none(KMSKeys.key_id == key_id, KMSKeys.key_alias == alias_name, KMSKeys.user == self.username)
             if existing_kms_key:
                 logger.info(f"KMS key record already exists in the database: {existing_kms_key}")
                 return key_id
-            
+
             user = User.get(User.username == self.username)
             KMSKeys.create(
                 user=user,
                 key_alias=alias_name,
-                key_id=key_id)
+                key_id=key_id
+            )
 
             return key_id
         except kms_client.exceptions.NotFoundException:
@@ -122,19 +123,21 @@ class InstanceSetUp():
             )
             logger.info(f"Created alias {alias_name} for KMS key {key_id}")
 
-            # Check if the record already exists in the database
+            # Check if the key alias and key ID combination already exists in the database
             existing_kms_key = KMSKeys.get_or_none(KMSKeys.key_id == key_id, KMSKeys.key_alias == alias_name, KMSKeys.user == self.username)
             if not existing_kms_key:
                 user = User.get(User.username == self.username)
                 KMSKeys.create(
                     user=user,
                     key_alias=alias_name,
-                    key_id=key_id)
+                    key_id=key_id
+                )
 
             return key_id
         except ClientError as e:
             logger.error(f"Failed to create KMS key: {e}")
             raise
+
 
 
     def encrypt_file_with_kms(self, kms_client, key_id, plaintext):
@@ -430,7 +433,6 @@ class InstanceSetUp():
         except Exception as e:
             logger.error(f"Failed to create EC2 instance: {e}")
             raise
-
 
 
 class InstanceCleanUp():

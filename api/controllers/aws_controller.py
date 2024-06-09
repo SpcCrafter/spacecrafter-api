@@ -58,11 +58,21 @@ def create_container():
     if not aws_credentials:
         return jsonify({'message': 'AWS credentials not found for the user'}), 404
 
+    container_name = data.get('container_name')
+
+    # Check if a container with the same name already exists for the user
+    existing_container = UserContainers.get_or_none(
+        (UserContainers.user == user) &
+        (UserContainers.container_name == container_name)
+    )
+    if existing_container:
+        logger.info(f'Container with name {container_name} already exists')
+        return jsonify({'message': f'Container with name {container_name} already exists'}), 400
+
     aws_access_key_id = decrypt(aws_credentials.aws_access_key_id)
     aws_secret_access_key = decrypt(aws_credentials.aws_secret_access_key)
     preferred_aws_region = aws_credentials.preferred_aws_region
 
-    container_name = data.get('container_name')
     requested_cpu = data.get('cpu')
     requested_storage = data.get('storage')
     container_params = {
@@ -156,13 +166,13 @@ def ssh_container():
         logger.info(f"Found instance ID: {instance_id}")
     except UserContainers.DoesNotExist:
         logger.error(f"Instance with container name {container_name} not found.")
-        return jsonify({"error": "Instance not found"}), 404
+        return jsonify({"message": "Instance not found"}), 404
 
     public_ip = get_instance_public_ip(aws_access_key_id, aws_secret_access_key,
                                        preferred_aws_region, instance_id)
     if not public_ip:
         logger.error(f"Unable to fetch public IP for instance {instance_id}.")
-        return jsonify({"error": "Unable to fetch public IP for instance"}), 500
+        return jsonify({"message": "Unable to fetch public IP for instance"}), 500
 
     instance = EC2Instances.get((EC2Instances.user == user) &
                                 (EC2Instances.ec2_instance_id == instance_id))
@@ -207,13 +217,13 @@ def delete_container():
         logger.info(f"Found instance ID: {instance_id}")
     except UserContainers.DoesNotExist:
         logger.error(f"Instance with container name {container_name} not found.")
-        return jsonify({"error": "Instance not found"}), 404
+        return jsonify({"message": "Instance not found"}), 404
 
     public_ip = get_instance_public_ip(aws_access_key_id, aws_secret_access_key,
                                        preferred_aws_region, instance_id)
     if not public_ip:
         logger.error(f"Unable to fetch public IP for instance {instance_id}.")
-        return jsonify({"error": "Unable to fetch public IP for instance"}), 500
+        return jsonify({"message": "Unable to fetch public IP for instance"}), 500
 
     instance_cleanup = InstanceCleanUp(aws_access_key_id,
                                        aws_secret_access_key,
