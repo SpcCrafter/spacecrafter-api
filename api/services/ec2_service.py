@@ -89,6 +89,12 @@ class InstanceSetUp():
             key_id = response['KeyMetadata']['KeyId']
             logger.info(f"Found existing KMS key with ID: {key_id} for user {self.username}")
 
+            # Check if the record already exists in the database
+            existing_kms_key = KMSKeys.get_or_none(KMSKeys.key_id == key_id, KMSKeys.key_alias == alias_name, KMSKeys.user == self.username)
+            if existing_kms_key:
+                logger.info(f"KMS key record already exists in the database: {existing_kms_key}")
+                return key_id
+            
             user = User.get(User.username == self.username)
             KMSKeys.create(
                 user=user,
@@ -116,16 +122,20 @@ class InstanceSetUp():
             )
             logger.info(f"Created alias {alias_name} for KMS key {key_id}")
 
-            user = User.get(User.username == self.username)
-            KMSKeys.create(
-                user=user,
-                key_alias=alias_name,
-                key_id=key_id)
+            # Check if the record already exists in the database
+            existing_kms_key = KMSKeys.get_or_none(KMSKeys.key_id == key_id, KMSKeys.key_alias == alias_name, KMSKeys.user == self.username)
+            if not existing_kms_key:
+                user = User.get(User.username == self.username)
+                KMSKeys.create(
+                    user=user,
+                    key_alias=alias_name,
+                    key_id=key_id)
 
             return key_id
         except ClientError as e:
             logger.error(f"Failed to create KMS key: {e}")
             raise
+
 
     def encrypt_file_with_kms(self, kms_client, key_id, plaintext):
         response = kms_client.encrypt(
@@ -177,8 +187,9 @@ class InstanceSetUp():
 
         try:
             ec2_client.describe_key_pairs(KeyNames=[key_name])
-            print(f"Can't create as key pair '{key_name}' already exists.")
             logger.info(f"Can't create as key pair '{key_name}' already exists.")
+            key_pair = EC2KeyPair.get(EC2KeyPair.key_pair == key_name)
+            key_pair_id = key_pair.id
         except ClientError as e:
             if 'InvalidKeyPair.NotFound' in str(e):
                 key_pair_info = ec2_client.create_key_pair(KeyName=key_name)
@@ -190,7 +201,6 @@ class InstanceSetUp():
                 # Save encrypted key to S3
                 s3_file_path = f"keys/{key_name}.pem.enc"
                 s3_client.put_object(Bucket=s3_bucket_name, Key=s3_file_path, Body=encrypted_key)
-                print(f"Encrypted key pair saved to s3://{s3_bucket_name}/{s3_file_path}")
                 logger.info(f"Encrypted key pair saved to s3://{s3_bucket_name}/{s3_file_path}")
 
                 # Save file path to database
@@ -200,12 +210,15 @@ class InstanceSetUp():
                     key_pair=key_name,
                     s3_file_path=f"s3://{s3_bucket_name}/{s3_file_path}"
                 )
-                print(f"File path saved to database: {s3_file_path}")
-                logger.info(f"File path saved to database: {s3_file_path}")
 
+                key_pair = EC2KeyPair.get(EC2KeyPair.key_pair == key_name)
+                key_pair_id = key_pair.id
+
+                logger.info(f"File path saved to database: {s3_file_path}")
             else:
                 raise e
-        return key_name
+
+        return key_name, key_pair_id
 
     def retrieve_and_decrypt_key(self, s3_file_path, s3_bucket):
         session = self.setup_boto_session()
@@ -328,17 +341,12 @@ class InstanceSetUp():
 
         logger.info(f"Creating EC2 instance with name: {instance_name}")
 
-        # !!!!! Should fix
-        # Find the AMI ID
-        # ami_id = self.find_ami_id()
-        # if not ami_id:
-        #     raise ValueError(f"Unable to find a suitable AMI ID. The output: {ami_id}")
         ami_id = "ami-026c3177c9bd54288"
 
         # Create the key pair
-        key_name = self.create_instance_key()
-        if not key_name:
-            raise ValueError("Unable to create a key pair.")
+        key_name, key_pair_id = self.create_instance_key()
+        if not key_name or not key_pair_id:
+            raise ValueError("Unable to create a key pair or retrieve key pair ID.")
 
         # Create the security group
         security_group_id = self.create_security_group()
@@ -391,7 +399,6 @@ class InstanceSetUp():
                 ]
             )
             instance_id = instances['Instances'][0]['InstanceId']
-            print(f"EC2 instance '{instance_id}' has been created successfully.")
             logger.info(f"EC2 instance '{instance_id}' has been created successfully.")
 
             # Wait for the instance to initialize and get its public IP address
@@ -410,23 +417,20 @@ class InstanceSetUp():
             else:
                 logger.info(f"EC2 instance public IP: {public_ip}")
 
-            
             user = User.get(User.username == self.username)
             security_group = SecurityGroups.get(SecurityGroups.security_group_id == security_group_id)
             EC2Instances.create(
                 user=user,
                 ec2_instance_id=instance_id,
                 security_group=security_group,
-                key_file=key_name
+                key_file=key_pair_id
             )
 
             return instance_id, public_ip
         except Exception as e:
-            # Handle the exception in a way that's appropriate for your application
-            # For example, you might want to log the error,
-            # clean up resources, or retry the operation
-            print(f"Failed to create EC2 instance: {e}")
+            logger.error(f"Failed to create EC2 instance: {e}")
             raise
+
 
 
 class InstanceCleanUp():

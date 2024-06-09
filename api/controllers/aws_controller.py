@@ -99,7 +99,7 @@ def create_container():
 
         time.sleep(120)
 
-        key_pair = EC2KeyPair.get(EC2KeyPair.key_pair == ec2_instance.key_file.key_pair)
+        key_pair = EC2KeyPair.get(EC2KeyPair.id == ec2_instance.key_file)
         s3_file_path = key_pair.s3_file_path
         local_key_path = "/tmp/temp_key.pem"
 
